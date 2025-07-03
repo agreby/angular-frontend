@@ -1,7 +1,7 @@
 import { Component, type OnInit } from "@angular/core"
 import { CommonModule } from "@angular/common"
 import { RouterModule } from "@angular/router"
-import type { CampaignService } from "../../services/campaign.service"
+import  { CampaignService } from "../../services/campaign.service"
 
 @Component({
   selector: "app-campaigns-list",
@@ -170,9 +170,10 @@ export class CampaignsListComponent implements OnInit {
   constructor(private campaignService: CampaignService) {}
 
   ngOnInit(): void {
-    this.campaignService.getCampaigns().subscribe((campaigns) => {
-      this.campaigns = campaigns
-    })
+    this.campaignService.getCampaigns().subscribe((response) => {
+      console.log('Campaigns response:', response);
+      this.campaigns = response?.data?.content || [];
+    });
   }
 
   getOpenRate(campaign: any): number {

@@ -49,7 +49,7 @@ import { CommonModule } from "@angular/common"
           </div>
           <div class="ml-2">
             <div class="text-sm font-medium">Marc Jacob</div>
-            <div class="text-xs text-gray-500">marc@goodmail.io</div>
+            <div class="text-xs text-gray-500">marc&#64;goodmail.io</div>
           </div>
         </div>
       </div>

@@ -1,8 +1,8 @@
 import { Component, type OnInit } from "@angular/core"
 import { CommonModule } from "@angular/common"
-import { type FormBuilder, type FormGroup, ReactiveFormsModule, Validators } from "@angular/forms"
-import { type Router, RouterModule } from "@angular/router"
-import type { CampaignService } from "../../services/campaign.service"
+import { FormBuilder, type FormGroup, ReactiveFormsModule, Validators } from "@angular/forms"
+import { Router, RouterModule } from "@angular/router"
+import { CampaignService } from "../../services/campaign.service"
 
 @Component({
   selector: "app-campaign-form",
@@ -133,6 +133,22 @@ import type { CampaignService } from "../../services/campaign.service"
                 <option value="rss">RSS Campaign</option>
               </select>
             </div>
+
+            <!-- Recipient Email -->
+            <div class="col-span-2">
+              <label for="recipientEmail" class="block text-sm font-medium text-gray-700 mb-1">Recipient Email</label>
+              <input 
+                type="email" 
+                id="recipientEmail" 
+                formControlName="recipientEmail"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g. user@example.com"
+              >
+              <div *ngIf="submitted && f['recipientEmail'].errors" class="mt-1 text-sm text-red-500">
+                <div *ngIf="f['recipientEmail'].errors['required']">Recipient email is required</div>
+                <div *ngIf="f['recipientEmail'].errors['email']">Please enter a valid email address</div>
+              </div>
+            </div>
           </div>
 
           <div class="mt-8 border-t border-gray-200 pt-6">
@@ -208,49 +224,6 @@ import type { CampaignService } from "../../services/campaign.service"
               <div *ngIf="submitted && f['content'].errors" class="mt-1 text-sm text-red-500">
                 <div *ngIf="f['content'].errors['required']">Email content is required</div>
               </div>
-            </div>
-          </div>
-
-          <div class="mt-8 border-t border-gray-200 pt-6">
-            <h3 class="text-lg font-medium mb-4">Recipients</h3>
-            
-            <!-- Recipient List -->
-            <div class="mb-6">
-              <label for="recipientList" class="block text-sm font-medium text-gray-700 mb-1">Recipient List</label>
-              <select 
-                id="recipientList" 
-                formControlName="recipientList"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select a list</option>
-                <option value="all_subscribers">All Subscribers (5,189)</option>
-                <option value="active_users">Active Users (3,241)</option>
-                <option value="new_customers">New Customers (842)</option>
-                <option value="newsletter">Newsletter Subscribers (4,102)</option>
-              </select>
-              <div *ngIf="submitted && f['recipientList'].errors" class="mt-1 text-sm text-red-500">
-                <div *ngIf="f['recipientList'].errors['required']">Recipient list is required</div>
-              </div>
-            </div>
-
-            <!-- Segment -->
-            <div class="mb-6">
-              <div class="flex items-center justify-between mb-1">
-                <label for="segment" class="block text-sm font-medium text-gray-700">Segment (Optional)</label>
-                <button type="button" class="text-sm text-blue-600 hover:text-blue-800">
-                  Create New Segment
-                </button>
-              </div>
-              <select 
-                id="segment" 
-                formControlName="segment"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">No segment</option>
-                <option value="high_engagement">High Engagement (1,245)</option>
-                <option value="recent_purchase">Recent Purchase (567)</option>
-                <option value="cart_abandoners">Cart Abandoners (328)</option>
-              </select>
             </div>
           </div>
 
@@ -398,8 +371,7 @@ export class CampaignFormComponent implements OnInit {
       campaignType: ["regular"],
       template: [""],
       content: ["", Validators.required],
-      recipientList: ["", Validators.required],
-      segment: [""],
+      recipientEmail: ["", [Validators.required, Validators.email]],
       sendTime: ["now"],
       scheduleDate: [""],
       scheduleTime: [""],
@@ -440,18 +412,34 @@ export class CampaignFormComponent implements OnInit {
     const campaignData = this.campaignForm.value
 
     if (campaignData.sendTime === "now") {
-      this.campaignService.sendCampaign(campaignData).subscribe({
-        next: () => {
-          alert("Campaign sent successfully!")
-          this.router.navigate(["/dashboard"])
+      this.campaignService.sendCampaign({ ...campaignData, status: 'SENT' }).subscribe({
+        next: (response) => {
+          const campaignId = response?.data?.id;
+          if (campaignId) {
+            this.campaignService.sendCampaignById(campaignId).subscribe({
+              next: () => {
+                alert("Campaign sent successfully!");
+                this.router.navigate(["/dashboard"]);
+              },
+              error: (error) => {
+                console.error("Error sending campaign:", error);
+                alert("Failed to send campaign. Please try again.");
+                this.router.navigate(["/dashboard"]);
+              },
+            });
+          } else {
+            alert("Campaign created, but could not send. No campaign ID returned.");
+            this.router.navigate(["/dashboard"]);
+          }
         },
         error: (error) => {
-          console.error("Error sending campaign:", error)
-          alert("Failed to send campaign. Please try again.")
+          console.error("Error creating campaign:", error);
+          alert("Failed to create campaign. Please try again.");
+          this.router.navigate(["/dashboard"]);
         },
-      })
+      });
     } else {
-      this.campaignService.scheduleCampaign(campaignData).subscribe({
+      this.campaignService.scheduleCampaign({ ...campaignData, status: 'SCHEDULED' }).subscribe({
         next: () => {
           alert("Campaign scheduled successfully!")
           this.router.navigate(["/dashboard"])
@@ -459,6 +447,7 @@ export class CampaignFormComponent implements OnInit {
         error: (error) => {
           console.error("Error scheduling campaign:", error)
           alert("Failed to schedule campaign. Please try again.")
+          this.router.navigate(["/dashboard"])
         },
       })
     }

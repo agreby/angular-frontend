@@ -38,30 +38,30 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable()
 
   constructor(private http: HttpClient) {
-    // Check if user is already logged in
-    const token = localStorage.getItem("authToken")
-    if (token) {
-      // You might want to validate the token with the backend
-      this.getCurrentUser().subscribe()
-    }
+    // Don't automatically call getCurrentUser on startup
+    // This prevents 403 errors when user is not logged in
   }
 
-  login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
+  login(credentials: LoginRequest): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response) => {
-        localStorage.setItem("authToken", response.token)
-        this.currentUserSubject.next(response.user)
+        const token = response.data?.token;
+        const user = response.data?.user;
+        localStorage.setItem("authToken", token);
+        this.currentUserSubject.next(user);
       }),
-    )
+    );
   }
 
-  register(userData: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, userData).pipe(
+  register(userData: RegisterRequest): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/register`, userData).pipe(
       tap((response) => {
-        localStorage.setItem("authToken", response.token)
-        this.currentUserSubject.next(response.user)
+        const token = response.data?.token;
+        const user = response.data?.user;
+        if (token) localStorage.setItem("authToken", token);
+        if (user) this.currentUserSubject.next(user);
       }),
-    )
+    );
   }
 
   forgotPassword(email: string): Observable<any> {
@@ -78,10 +78,15 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem("authToken")
+    const token = localStorage.getItem("authToken");
+    return !!(token && token !== "undefined" && token !== "null" && token !== "");
   }
 
   getToken(): string | null {
-    return localStorage.getItem("authToken")
+    const token = localStorage.getItem("authToken");
+    if (token && token !== "undefined" && token !== "null" && token !== "") {
+      return token;
+    }
+    return null;
   }
 }

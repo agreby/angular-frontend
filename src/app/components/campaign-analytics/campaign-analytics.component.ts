@@ -1,6 +1,6 @@
 import { Component, type OnInit } from "@angular/core"
 import { CommonModule } from "@angular/common"
-import { type ActivatedRoute, RouterModule } from "@angular/router"
+import { ActivatedRoute, RouterModule } from "@angular/router"
 
 @Component({
   selector: "app-campaign-analytics",
